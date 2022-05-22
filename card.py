@@ -1,27 +1,30 @@
 import os
-import sys
 import datetime
 import playsound
 import nfc
-
+import threading
 r = []
 
-def print_info(s, student_info):
-    if s == "出発":
-        print(f"\033[33m{s}モード\033[0m")
-    elif s == "時間未経過":
-        print(f"\033[31m{s}モード\033[0m")
+def print_info(s, student_info, *started):
+    global r
     print_list = [
-        f"\t　学籍番号：{student_info[0]}\n",
-        f"\t　　　氏名：{student_info[1]}\n",
-        f"\tカレッジ名：{student_info[2]}\n",
-        f"\t　　学科名：{student_info[3]}\n",
-        f"\t　　　性別：{student_info[4]}\n",
-        f"\t　　　学年：{student_info[5]}\n"
+        True,
+        f"{s}\n",
+        f"学籍番号：{student_info[0]}\n",
+        f"氏名：{student_info[1]}\n",
+        f"性別：{student_info[4]}\n",
+        f"学年：{student_info[5]}\n",
+        f"カレッジ名：{student_info[2]}\n",
+        f"学科名：{student_info[3]}\n",
+        
     ]
-    return print_list
+    if len(started) > 0:
+        s = str(started[0]).split(".")[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1) + "秒"
+        print_list.append(f"開始時刻：{s}\n")
+    r = print_list
 
 def check_card(student_id):
+    global r
     path = './inout.gsheet'
     if not os.path.isfile(path):
         with open(path, 'w', encoding='utf-8') as f:
@@ -35,41 +38,42 @@ def check_card(student_id):
         for i in index:
             if student_id in i and str(now).split( )[0] in i:
                 cnt_num += 1
-
+        
         if cnt_num % 2 == 0:
-            s = "出発"
             kaishi_flag = True
         else:
-            s = "終了"
             for i in reversed(index):
                 if student_id in i:
-                    bef = i.rstrip().split(",")[2].lstrip(" ")
-                    bef = datetime.datetime.strptime(bef, '%Y-%m-%d %H:%M:%S.%f')
+                    started = i.rstrip().split(",")[2].lstrip(" ")
+                    started = datetime.datetime.strptime(started, '%Y-%m-%d %H:%M:%S.%f')
                     break
-            diff = str(now - bef).split(":")
+            diff = str(now - started).split(":")
             if int(diff[0]) >= 1 or int(diff[1]) >= 30:
                     kitaku_flag = True            
                 
-        os.system('cls')
+        # os.system('cls')
         with open("student.csv", 'r', encoding='utf-8') as a:
-                index = a.readlines()
-                for i in index:
-                    if student_id in i:
-                        student_info = i.split(", ")
-                        break
-        if kitaku_flag or kaishi_flag:
-            f.writelines(f"{student_id}, {s}, {now}\n")
+            exiflag = False
+            index = a.readlines()
+            for i in index:
+                if student_id == i[:9]:
+                    student_info = i.split(", ")
+                    exiflag = True
+                    break
+        if not exiflag:
+            r = [False, f"{student_id}は存在しません"]
+        elif kitaku_flag or kaishi_flag:
+            f.writelines(f"{student_id}, 開始, {now}\n")
             # 出力
-            r = print_info(s, student_id)
+            print_info("開始", student_info)
             playsound.playsound("OK.mp3")
         else:
-            r = [print_info("時間未経過", student_info), f"残り\033[33m{30 - int(diff[1])}分後\033[0mに終了できます"]
-    
-    return r
-            
+            print_info("時間未経過", student_info, started)
+            r += f"\n残り約{30 - int(diff[1])}分後に終了できます"
+            playsound.playsound("NO.mp3")
 
 def connected(tag):
-    global r
+    # global r
     service_code = 0x200B
     try: 
         if isinstance(tag, nfc.tag.tt3.Type3Tag):
@@ -78,35 +82,29 @@ def connected(tag):
                 blcd = nfc.tag.tt3.BlockCode(0,service=0)
                 block_data = tag.read_without_encryption([svcd], [blcd])
                 student_id = str(block_data[0:9].decode("utf-8"))
-                r = check_card(student_id)
+                check_card(student_id)
             except Exception as e:
                 print("Error:%s" % e)
     except AttributeError:
         pass
     return True
 
-def main():
+class Card(object):
     global r
-    try:
-        clf = nfc.ContactlessFrontend('usb')
-        clf.connect(
-            rdwr={'on-connect': connected}
-        )
-    except OSError as e:
-        print("PaSoRiが認識されませんでした")
-        print(f"エラー： {e}")
-        
-    except KeyboardInterrupt:
-        clf.close()
-        sys.exit(0)
-    except Exception as e:
-        print("何らかのエラーが発生しました")
-        print(f"エラー： {e}")
-        print("考えられる原因")
-        print("\tPaSoliのセットアップが正しくできていない")
-        print("\tパソコンのやる気がない")
-    clf.close()
+    def __init__(self):
+        self.flag = False
+    def __call__(self):
+        try:
+            with nfc.ContactlessFrontend('usb') as clf:
+                clf.connect(rdwr={'on-connect': connected}, terminate=lambda: self.flag)
+        except Exception as e:
+            pass
+
+def main(*student_id):
+    global r
+    if len(student_id) > 0:
+        check_card(student_id[0])
+    else:
+        threading.Thread(target=(Card())).start()
+        Card.flag = True
     return r
-
-# main()
-
