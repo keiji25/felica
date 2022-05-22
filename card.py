@@ -5,7 +5,7 @@ import nfc
 import threading
 r = []
 
-def print_info(s, student_info, *started):
+def print_info(s, student_info, started):
     global r
     print_list = [
         f"{s}\n",
@@ -16,9 +16,12 @@ def print_info(s, student_info, *started):
         f"カレッジ名：{student_info[2]}\n",
         f"学科名：{student_info[3]}\n",
     ]
-    if len(started) > 0:
-        s = str(started[0]).split(".")[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1) + "秒"
-        print_list.append(f"開始時刻：{s}\n")
+    
+    starttime = str(started).split(".")[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1) + "秒"
+    endtime = str(started + datetime.timedelta(minutes=30)).split(".")[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1) + "秒"
+         
+    print_list.append(f"出発時刻：{starttime}\n")
+    print_list.append(f"終了可能時刻：{endtime}\n")
 
     r = print_list
 
@@ -65,8 +68,7 @@ def check_card(student_id):
             r = [False, f"{student_id}は存在しません"]
         elif kitaku_flag or kaishi_flag:
             f.writelines(f"{student_id}, {s}, {now}\n")
-            # 出力
-            print_info(s, student_info, started)
+            print_info(s, student_info, now)
             playsound.playsound("OK.mp3")
         else:
             print_info("時間未経過", student_info, started)

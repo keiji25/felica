@@ -15,7 +15,6 @@ def func():
             label2["text"] = txt
         btn.after(100, func)
     approve_check(r)
-    print(r)
 
 def calc(event):
     global r
@@ -61,12 +60,12 @@ def approve():
     txt = ""
     for i in range(1, len(r) - 2):
         txt += r[i]
-    r = f"終了許可しました\n\n{txt}"
+    
+    r = f"終了許可しました\n\n{txt}終了時刻：{str(datetime.datetime.now()).split('.')[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1)}秒"
     label2["text"] = r
     card.r = r
     approve_btn.pack_forget()
     
-
 def isOk(after):
     if len(after) > 9:
         return False
@@ -105,4 +104,3 @@ if __name__ == "__main__":
     textBox1.bind('<Return>', calc)
 
     root.mainloop()
-print(r)
