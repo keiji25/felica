@@ -8,7 +8,6 @@ r = []
 def print_info(s, student_info, *started):
     global r
     print_list = [
-        True,
         f"{s}\n",
         f"学籍番号：{student_info[0]}\n",
         f"氏名：{student_info[1]}\n",
@@ -16,11 +15,11 @@ def print_info(s, student_info, *started):
         f"学年：{student_info[5]}\n",
         f"カレッジ名：{student_info[2]}\n",
         f"学科名：{student_info[3]}\n",
-        
     ]
     if len(started) > 0:
         s = str(started[0]).split(".")[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1) + "秒"
         print_list.append(f"開始時刻：{s}\n")
+
     r = print_list
 
 def check_card(student_id):
@@ -40,8 +39,10 @@ def check_card(student_id):
                 cnt_num += 1
         
         if cnt_num % 2 == 0:
+            s = "出発"
             kaishi_flag = True
         else:
+            s = "終了"
             for i in reversed(index):
                 if student_id in i:
                     started = i.rstrip().split(",")[2].lstrip(" ")
@@ -63,17 +64,16 @@ def check_card(student_id):
         if not exiflag:
             r = [False, f"{student_id}は存在しません"]
         elif kitaku_flag or kaishi_flag:
-            f.writelines(f"{student_id}, 開始, {now}\n")
+            f.writelines(f"{student_id}, {s}, {now}\n")
             # 出力
-            print_info("開始", student_info)
+            print_info(s, student_info, started)
             playsound.playsound("OK.mp3")
         else:
             print_info("時間未経過", student_info, started)
-            r += f"\n残り約{30 - int(diff[1])}分後に終了できます"
+            r.append(f"\n残り約{30 - int(diff[1])}分後に終了できます\n")
             playsound.playsound("NO.mp3")
 
 def connected(tag):
-    # global r
     service_code = 0x200B
     try: 
         if isinstance(tag, nfc.tag.tt3.Type3Tag):
