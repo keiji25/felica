@@ -66,6 +66,7 @@ def approve():
     card.r = r
     approve_btn.pack_forget()
     
+
 def isOk(after):
     if len(after) > 9:
         return False

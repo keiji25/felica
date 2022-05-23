@@ -40,8 +40,10 @@ def check_card(student_id):
         for i in index:
             if student_id in i and str(now).split( )[0] in i:
                 cnt_num += 1
-        
-        if cnt_num % 2 == 0:
+        if cnt_num >= 2:
+            r = "既に参加済みです"
+            return
+        elif cnt_num % 2 == 0:
             s = "出発"
             kaishi_flag = True
         else:
@@ -65,7 +67,7 @@ def check_card(student_id):
                     exiflag = True
                     break
         if not exiflag:
-            r = [False, f"{student_id}は存在しません"]
+            r = [f"{student_id}は存在しません"]
         elif kitaku_flag or kaishi_flag:
             f.writelines(f"{student_id}, {s}, {now}\n")
             print_info(s, student_info, now)
