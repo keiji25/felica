@@ -71,11 +71,17 @@ def check_card(student_id):
         elif kitaku_flag or kaishi_flag:
             f.writelines(f"{student_id}, {s}, {now}\n")
             print_info(s, student_info, now)
-            playsound.playsound("OK.mp3")
+            sound(student_id, "OK.mp3")
         else:
             print_info("時間未経過", student_info, started)
             r.append(f"\n残り約{30 - int(diff[1])}分後に終了できます\n")
-            playsound.playsound("NO.mp3")
+            sound(student_id, "NO.mp3")
+
+def sound(student_id, path):
+    if student_id in ["K019C1066", "K019C1084", "K019C1166"]:
+        playsound.playsound("397.mp3")
+    else:
+        playsound.playsound(path)
 
 def connected(tag):
     service_code = 0x200B

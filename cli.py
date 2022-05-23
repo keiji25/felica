@@ -80,14 +80,15 @@ if __name__ == "__main__":
     
     tcl_isOk = root.register(isOk)
     str_v = tkinter.StringVar()
-    s_btn = tkinter.Button(text='手動モード', command=change)
+    s_btn = tkinter.Button(text='自動モード', command=change)
     s_btn.pack(anchor='center')
 
     textBox1 = tkinter.Entry(
         root,
         validate='key',
         vcmd=(tcl_isOk, '%P'),
-        textvariable=str_v
+        textvariable=str_v,
+        state='readonly'
     ) 
     textBox1.place(width=100, height=30)
     textBox1.pack(anchor='center')
