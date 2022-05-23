@@ -41,7 +41,7 @@ def check_card(student_id):
             if student_id in i and str(now).split( )[0] in i:
                 cnt_num += 1
         if cnt_num >= 2:
-            r = "既に参加済みです"
+            r = "すでに参加済みです"
             return
         elif cnt_num % 2 == 0:
             s = "出発"
