@@ -54,7 +54,7 @@ def approve_check(r):
 def approve():
     global r
     with open("inout.gsheet", 'a', encoding='utf-8') as f:
-        student_id = r[1].split('：')[1].rstrip('\n')
+        student_id = r[5].split('：')[1].rstrip('\n')
         txt = f"{student_id}, 終了, {datetime.datetime.now()}\n"
         f.writelines(txt)
     txt = ""
@@ -71,8 +71,10 @@ def isOk(after):
     if len(after) > 9:
         return False
     return True
+    
 
 if __name__ == "__main__":
+    card.open_excel()
     root = tkinter.Tk()
     root.title(u"入退場管理")
     root.geometry("800x500")
