@@ -15,7 +15,7 @@ def connected(tag):
             """
             
         except IOError as e:
-            print("Felicaが見つかりません")
+            print("デバイスが見つかりません")
             print(f"Error:{e}")
         except Exception as e:
             print(f"Error:{e}")

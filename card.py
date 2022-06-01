@@ -3,25 +3,20 @@ import datetime
 import playsound
 import nfc
 import threading
-import pandas as pd
+from student_list import student_list
 
 r = []
-db = pd.Series
-
-def open_excel():
-    global df
-    df = pd.read_excel('全学生名簿2022.xlsx')
 
 def print_info(s, student_info, started):
     global r
     print_list = [
         f"{s}\n",
-        f"学科名：{student_info[0][0]}\n",
-        f"学科記号：{student_info[0][1]}\n",
-        f"学年：{student_info[0][2]}\n",
-        f"性別：{student_info[0][3]}\n",
-        f"学籍番号：{student_info[0][4]}\n",
-        f"氏名：{student_info[0][5]}\n",        
+        f"学科名：{student_info[0]}\n",
+        f"学科記号：{student_info[1]}\n",
+        f"学年：{student_info[2]}\n",
+        f"性別：{student_info[3]}\n",
+        f"学籍番号：{student_info[4]}\n",
+        f"氏名：{student_info[5]}\n",        
     ]
     
     starttime = str(started).split(".")[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1) + "秒"
@@ -34,7 +29,7 @@ def print_info(s, student_info, started):
 
 def check_card(student_id):
     global r, df
-    path = './inout.gsheet'
+    path = 'J:/共有ドライブ/0_99.共通/Act共有ドライブ/1_0.行事/1_1.体育祭/入退場テスト/inout.gsheet'
     if not os.path.isfile(path):
         with open(path, 'w', encoding='utf-8') as f:
             pass
@@ -49,6 +44,7 @@ def check_card(student_id):
                 cnt_num += 1
         if cnt_num >= 2:
             r = "すでに参加済みです"
+            sound(student_id, "NO.mp3")
             return
         elif cnt_num % 2 == 0:
             s = "出発"
@@ -63,19 +59,12 @@ def check_card(student_id):
             diff = str(now - started).split(":")
             if int(diff[0]) >= 1 or int(diff[1]) >= 30:
                     kitaku_flag = True            
-                
-        # os.system('cls')
-        # with open("student.csv", 'r', encoding='utf-8') as a:
-        #     exiflag = False
-        #     index = a.readlines()
-        #     for i in index:
-        #         if student_id == i[:9]:
-        #             student_info = i.split(", ")
-        #             exiflag = True
-        #             break
-        
-        student_info = df[["学科名", "記号", "年次", "性別", "学籍番号", "氏名＿漢字", "氏名＿カナ"]][df["学籍番号"].isin([student_id])].values.tolist()
 
+        student_info = []
+        for j in student_list:
+            if j[4] == student_id:
+                student_info = j
+                
         if len(student_info) == 0:
             exiflag = False
         else:
@@ -93,7 +82,7 @@ def check_card(student_id):
             sound(student_id, "NO.mp3")
 
 def sound(student_id, path):
-    if student_id in ["K019C1066", "K019C1166"]:
+    if student_id in ["K019C1066", "K019C1084", "K019C1166"]:
         playsound.playsound("397.mp3")
     else:
         playsound.playsound(path)
@@ -109,7 +98,7 @@ def connected(tag):
                 student_id = str(block_data[0:9].decode("utf-8"))
                 check_card(student_id)
             except Exception as e:
-                print("Error:%s" % e)
+                pass
     except AttributeError:
         pass
     return True
