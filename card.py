@@ -1,14 +1,16 @@
-import os
 import datetime
 import playsound
 import nfc
 import threading
 from student_list import student_list
+import socket
+import pickle
 
 r = []
-
+ip = ""
+cnt = 1
 def print_info(s, student_info, started):
-    global r
+    global r, cnt
     print_list = [
         f"{s}\n",
         f"学科名：{student_info[0]}\n",
@@ -26,66 +28,76 @@ def print_info(s, student_info, started):
     print_list.append(f"終了可能時刻：{endtime}\n")
 
     r = print_list
+    print(f"No.{cnt}：", end="")
+    print(print_list[0].rstrip('\n'))
+    cnt += 1
 
 def check_card(student_id):
-    global r, df
-    path = 'J:/共有ドライブ/0_99.共通/Act共有ドライブ/1_0.行事/1_1.体育祭/入退場テスト/inout.gsheet'
-    if not os.path.isfile(path):
-        with open(path, 'w', encoding='utf-8') as f:
-            pass
-        
-    with open(path, 'r+', encoding='utf-8') as f:
-        index = f.readlines()
-        now = datetime.datetime.now()
-        kaishi_flag, kitaku_flag = False, False
-        cnt_num = 0
-        for i in index:
-            if student_id in i and str(now).split( )[0] in i:
-                cnt_num += 1
-        if cnt_num >= 2:
-            r = "すでに参加済みです"
-            sound(student_id, "NO.mp3")
-            return
-        elif cnt_num % 2 == 0:
-            s = "出発"
-            kaishi_flag = True
-        else:
-            s = "終了"
-            for i in reversed(index):
-                if student_id in i:
-                    started = i.rstrip().split(",")[2].lstrip(" ")
-                    started = datetime.datetime.strptime(started, '%Y-%m-%d %H:%M:%S.%f')
-                    break
-            diff = str(now - started).split(":")
-            if int(diff[0]) >= 1 or int(diff[1]) >= 30:
-                    kitaku_flag = True            
-
-        student_info = []
-        for j in student_list:
-            if j[4] == student_id:
-                student_info = j
-                
-        if len(student_info) == 0:
-            exiflag = False
-        else:
-            exiflag = True
-
-        if not exiflag:
-            r = [f"{student_id}は存在しません"]
-        elif kitaku_flag or kaishi_flag:
-            f.writelines(f"{student_id}, {s}, {now}\n")
-            print_info(s, student_info, now)
-            sound(student_id, "OK.mp3")
-        else:
-            print_info("時間未経過", student_info, started)
-            r.append(f"\n残り約{30 - int(diff[1])}分後に終了できます\n")
-            sound(student_id, "NO.mp3")
-
-def sound(student_id, path):
-    if student_id in ["K019C1066", "K019C1084", "K019C1166"]:
-        playsound.playsound("397.mp3")
+    global r, ip
+    target_ip = ip
+    target_port = 8080
+    buffer_size = 4096
+    
+    tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_client.settimeout(2)
+    try:
+        tcp_client.connect((target_ip,target_port))
+    except OSError as o:
+        print("IPが違うかも")
+    except Exception as e:
+        print(f"何らかのエラーが発生しました。error:{e}")
+    index = pickle.loads(tcp_client.recv(buffer_size))
+    now = datetime.datetime.now()
+    kaishi_flag, kitaku_flag = False, False
+    cnt_num = 0
+    for i in index:
+        if student_id in i and str(now).split( )[0] in i:
+            cnt_num += 1
+    if cnt_num >= 2:
+        r = "すでに参加済みです"
+        playsound.playsound("sounds/NO.mp3")
+        tcp_client.close()
+        return
+    elif cnt_num % 2 == 0:
+        s = "出発"
+        kaishi_flag = True
     else:
-        playsound.playsound(path)
+        s = "終了"
+        for i in reversed(index):
+            if student_id in i:
+                started = i.rstrip().split(",")[2].lstrip(" ")
+                started = datetime.datetime.strptime(started, '%Y-%m-%d %H:%M:%S.%f')
+                break
+        diff = str(now - started).split(":")
+        if int(diff[0]) >= 1 or int(diff[1]) >= 30:
+                kitaku_flag = True            
+
+    student_info = []
+    for j in student_list:
+        if j[4] == student_id:
+            student_info = j
+            
+    if len(student_info) == 0:
+        exiflag = False
+    else:
+        exiflag = True
+
+    if not exiflag:
+        r = [f"{student_id}は存在しません"]
+        playsound.playsound("sounds/NO.mp3")
+    elif kitaku_flag or kaishi_flag:
+        print_info(s, student_info, now)
+        tcp_client.send(f"{student_id}, {s}, {now}\n".encode())
+        if student_id in ["K019C1066", "K019C1084", "K019C1166"]:
+            playsound.playsound("sounds/397.mp3")
+        else:
+            playsound.playsound("sounds/OK.mp3")
+        
+    else:
+        print_info("時間未経過", student_info, started)
+        r.append(f"\n残り約{30 - int(diff[1])}分後に終了できます\n")
+        playsound.playsound("sounds/NO.mp3")
+    tcp_client.close()
 
 def connected(tag):
     service_code = 0x200B
@@ -116,6 +128,7 @@ class Card(object):
 
 def main(*student_id):
     global r
+    
     if len(student_id) > 0:
         check_card(student_id[0])
     else:

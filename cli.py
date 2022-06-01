@@ -1,7 +1,9 @@
 import tkinter as tk
+import playsound
 import card
 import datetime
-
+import socket
+ip = ""
 class App(tk.Frame):
     r = []
     def __init__(self, root=None):
@@ -11,7 +13,7 @@ class App(tk.Frame):
         root.title(u"入退場管理")
         root.geometry("800x500")
 
-        root.iconbitmap(default='act.ico')
+        # root.iconbitmap(default='./act.ico')
 
         self.tcl_isOk = root.register(self.isOk)
         self.str_v = tk.StringVar()
@@ -42,7 +44,7 @@ class App(tk.Frame):
         self.textBox1.bind('<Return>', self.calc)
 
     def func(self):
-        global r, bef
+        global r
         self.textBox1.delete(0, tk.END)
         if self.s_btn.cget("text") == "自動モード":
             r = card.main()
@@ -53,7 +55,7 @@ class App(tk.Frame):
                 self.label2["text"] = txt
             self.btn.after(100, self.func)
             self.approve_check(r)
-
+            
     def calc(self, event):
         global r
         getvalue = self.textBox1.get()
@@ -67,6 +69,7 @@ class App(tk.Frame):
                 txt += r[i]
             if r != []:
                 self.label2["text"] = txt
+            
         self.approve_check(r)
 
     def change(self):
@@ -90,11 +93,19 @@ class App(tk.Frame):
             self.approve_btn.pack_forget()
 
     def approve(self):
-        global r
-        with open("inout.gsheet", 'a', encoding='utf-8') as f:
-            student_id = r[5].split('：')[1].rstrip('\n')
-            txt = f"{student_id}, 終了, {datetime.datetime.now()}\n"
-            f.writelines(txt)
+        global r, ip
+        target_ip = card.ip
+        target_port = 8080
+        buffer_size = 4096
+        tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp_client.settimeout(3000)
+
+        tcp_client.connect((target_ip,target_port))
+        tcp_client.recv(buffer_size)
+        student_id = r[5].split('：')[1].rstrip('\n')
+        tcp_client.send(f"{student_id}, 終了許可, {datetime.datetime.now()}\n".encode())
+        tcp_client.close()
+
         txt = ""
         for i in range(1, len(r) - 2):
             txt += r[i]
@@ -102,6 +113,7 @@ class App(tk.Frame):
         r = f"終了許可しました\n\n{txt}終了時刻：{str(datetime.datetime.now()).split('.')[0][5:].replace('-', '月', 1).replace(' ', '日 ', 1).replace(':', '時', 1).replace(':', '分', 1)}秒"
         self.label2["text"] = r
         card.r = r
+        playsound.playsound("sounds/OK.mp3")
         self.approve_btn.pack_forget()
         
     def isOk(self, after):
@@ -115,4 +127,5 @@ def main():
     app.mainloop()
 
 if __name__ == "__main__":
+    card.ip = input("指示されたIPを入力：")
     main()
